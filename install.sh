@@ -46,13 +46,32 @@ esac
 asset="vesslet-$os-$arch"
 
 command -v curl >/dev/null 2>&1 || fail "curl is required"
+
+# fetch URL [curl args…]: up to 3 attempts — a ~150 MB download over HTTP/2
+# can be cut mid-way ("Error in the HTTP2 framing layer"), so later attempts
+# fall back to HTTP/1.1.
+fetch() {
+  url="$1"; shift
+  attempt=1
+  while :; do
+    if [ $attempt -eq 1 ]; then
+      curl -fsS "$@" "$url" && return 0
+    else
+      curl -fsS --http1.1 "$@" "$url" && return 0
+    fi
+    [ $attempt -ge 3 ] && return 1
+    attempt=$((attempt + 1))
+    printf 'retrying (%s/3)...\n' "$attempt" >&2
+    sleep 2
+  done
+}
 if command -v sha256sum >/dev/null 2>&1; then sha() { sha256sum "$1" | cut -d' ' -f1; }
 elif command -v shasum >/dev/null 2>&1; then sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
 else fail "sha256sum or shasum is required to verify the download"; fi
 
 # ── version (BR-7) ──
 if [ -z "$VERSION" ]; then
-  VERSION="$(curl -fsSI "$RELEASES_URL/releases/latest" | tr -d '\r' | sed -n 's|^[Ll]ocation: .*/releases/tag/\(v[0-9][^ ]*\)$|\1|p' | tail -n 1)"
+  VERSION="$(fetch "$RELEASES_URL/releases/latest" -I | tr -d '\r' | sed -n 's|^[Ll]ocation: .*/releases/tag/\(v[0-9][^ ]*\)$|\1|p' | tail -n 1)"
   [ -n "$VERSION" ] || fail "couldn't find the latest release at $RELEASES_URL"
 fi
 case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
@@ -61,8 +80,8 @@ case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT INT TERM
 say "Downloading vesslet $VERSION ($os/$arch)..."
-curl -fsSL -o "$tmp/$asset" "$RELEASES_URL/releases/download/$VERSION/$asset" || fail "download failed — is $VERSION published for $os/$arch?"
-curl -fsSL -o "$tmp/checksums.txt" "$RELEASES_URL/releases/download/$VERSION/checksums.txt" || fail "couldn't download checksums.txt for $VERSION"
+fetch "$RELEASES_URL/releases/download/$VERSION/$asset" -L -o "$tmp/$asset" || fail "download failed — is $VERSION published for $os/$arch?"
+fetch "$RELEASES_URL/releases/download/$VERSION/checksums.txt" -L -o "$tmp/checksums.txt" || fail "couldn't download checksums.txt for $VERSION"
 want="$(awk -v a="$asset" '$2 == a || $2 == "*"a { print $1 }' "$tmp/checksums.txt")"
 [ -n "$want" ] || fail "$asset isn't listed in checksums.txt — refusing to install it"
 got="$(sha "$tmp/$asset")"
