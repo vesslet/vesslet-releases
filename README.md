@@ -13,7 +13,7 @@ You need:
 | Package manager (recommended) | [Homebrew](https://brew.sh) | — | winget (built into Windows 11) |
 | Disk / memory | ~10 GB free, 8 GB RAM or more | same | same |
 
-You don't need admin rights for vesslet itself. Everything else it needs, the installer offers to install for you: **k3d and kubectl** are downloaded straight from their official releases (checksum-verified) into vesslet's own folder on every OS — no Homebrew or winget needed; the GitHub CLI and Claude Code go through your package manager or their own installers.
+You don't need admin rights for vesslet itself. Everything else it needs, the installer offers to install for you: **k3d, kubectl and the GitHub CLI** are downloaded straight from their official releases (checksum-verified) into vesslet's own folder on every OS — no Homebrew or winget needed; Claude Code uses its own official installer, and Docker you install yourself (step above).
 
 > **Linux:** after installing Docker, run `sudo usermod -aG docker $USER` and log out and back in, so Docker works without `sudo`.
 
@@ -125,6 +125,8 @@ Other options: `--yes` installs every missing tool without asking (useful in scr
 | Just after a release, the installer picks the previous version | GitHub caches for up to 5 minutes — run the command again a few minutes later, or `vesslet update`. |
 | `checksum mismatch` | The download was altered or corrupted. Nothing was installed — run the command again. If it repeats, check for a proxy rewriting downloads. |
 | `download failed` / `retrying (2/3)` | A network hiccup; the installer retries by itself. Behind a corporate proxy, make sure `curl` can reach `github.com` and `objects.githubusercontent.com` (`HTTPS_PROXY` must be set in your shell). |
+| Pods stuck on `ImagePullBackOff` with `x509: certificate signed by unknown authority` (corporate network) | Your network inspects HTTPS with its own root certificate. vesslet copies the root your machine trusts Docker Hub with into the harbor when it's **created** — so recreate it: `vesslet harbor remove`, then `vesslet setup`. If it still fails, export your company's root certificate (ask IT, or from your system's certificate store) as a `.crt` file into `~/.vesslet/certs/` and recreate the harbor again. |
+| `EOF` from `https://host.docker.internal:…` (Windows) | A harbor created by vesslet before v0.1.6 — recreate it: `vesslet harbor remove`, then `vesslet setup`. |
 | `Docker isn't running` | Start Docker Desktop (Linux: `sudo systemctl start docker`), then `vesslet setup`. |
 | `The harbor isn't started yet` | A required tool (Docker, k3d, kubectl) is still missing — install it as printed, then `vesslet setup`. |
 | Dashboard doesn't open | `vesslet harbor status`; if the harbor is down, `vesslet setup`. |
