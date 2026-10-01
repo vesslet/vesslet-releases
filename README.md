@@ -13,7 +13,7 @@ You need:
 | Package manager (recommended) | [Homebrew](https://brew.sh) | — | winget (built into Windows 11) |
 | Disk / memory | ~10 GB free, 8 GB RAM or more | same | same |
 
-You don't need admin rights for vesslet itself. Everything else it needs — k3d, kubectl, the GitHub CLI, Claude Code — the installer offers to install for you.
+You don't need admin rights for vesslet itself. Everything else it needs, the installer offers to install for you: **k3d and kubectl** are downloaded straight from their official releases (checksum-verified) into vesslet's own folder on every OS — no Homebrew or winget needed; the GitHub CLI and Claude Code go through your package manager or their own installers.
 
 > **Linux:** after installing Docker, run `sudo usermod -aG docker $USER` and log out and back in, so Docker works without `sudo`.
 
@@ -25,10 +25,16 @@ You don't need admin rights for vesslet itself. Everything else it needs — k3d
 curl -fsSL https://raw.githubusercontent.com/vesslet/vesslet-releases/main/install.sh | sh
 ```
 
-**Windows** — in PowerShell:
+**Windows** — in **PowerShell** (Start → "PowerShell"; the prompt starts with `PS C:\…>`), not the Command Prompt:
 
 ```powershell
 irm https://raw.githubusercontent.com/vesslet/vesslet-releases/main/install.ps1 | iex
+```
+
+From the Command Prompt (`cmd`) instead — `irm is not recognized` means you're there:
+
+```cmd
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/vesslet/vesslet-releases/main/install.ps1 | iex"
 ```
 
 What happens:
@@ -115,6 +121,8 @@ Other options: `--yes` installs every missing tool without asking (useful in scr
 
 | Problem | What to do |
 |---|---|
+| `irm is not recognized` (Windows) | You're in the Command Prompt — open PowerShell, or use the `powershell -Command "…"` line from step 2. |
+| Just after a release, the installer picks the previous version | GitHub caches for up to 5 minutes — run the command again a few minutes later, or `vesslet update`. |
 | `checksum mismatch` | The download was altered or corrupted. Nothing was installed — run the command again. If it repeats, check for a proxy rewriting downloads. |
 | `download failed` / `retrying (2/3)` | A network hiccup; the installer retries by itself. Behind a corporate proxy, make sure `curl` can reach `github.com` and `objects.githubusercontent.com` (`HTTPS_PROXY` must be set in your shell). |
 | `Docker isn't running` | Start Docker Desktop (Linux: `sudo systemctl start docker`), then `vesslet setup`. |
