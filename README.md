@@ -41,13 +41,20 @@ What happens:
 
 1. The right build for your machine is downloaded and checked against its published checksum. If the check fails, nothing is installed.
 2. vesslet goes into `~/.vesslet/bin` (Windows: `%USERPROFILE%\.vesslet\bin`) and, on macOS/Linux, a link into `~/.local/bin`.
-3. **`vesslet setup` runs**: it lists the tools that are missing and asks before installing each one (`Install it with "brew install k3d"? [Y/n]`). Press Enter to accept, `n` to skip. Anything skipped is printed with how to install it yourself.
-4. When Docker is running and k3d and kubectl are present, it **starts the harbor** (your local Kubernetes) and the background companion, and prints the dashboard address.
+3. **`vesslet setup` runs** and asks what to set up:
+   ```
+   What should vesslet set up?
+     1) Agents only — tasks, teams, chats, pipelines (needs Claude Code, git, gh)
+     2) Agents + preview environments (vessels) — also Docker, k3d, kubectl and a local cluster
+   ```
+   Pick **1** if you only want the agents — no Docker needed. Pick **2** for live previews of a task's app. Without a terminal (scripts, CI) it sets up agents only; add `VESSLET_WITH=vessels` (or `--with vessels`) to get both. You can change this later: `vesslet setup --enable vessels` / `--disable vessels`.
+4. It lists the tools that are missing and asks before installing each one (`Install it with "brew install k3d"? [Y/n]`). Press Enter to accept, `n` to skip. Anything skipped is printed with how to install it yourself.
+5. It starts the background companion — which serves the dashboard — and, with vessels, the harbor (your local Kubernetes).
 
 The end of a successful install looks like this:
 
 ```
-[✓] vesslet is ready — dashboard: http://vesslet-harbor.localhost
+[✓] vesslet is ready — dashboard: http://localhost:7071
 ```
 
 ### If `vesslet` isn't found afterwards
@@ -78,7 +85,7 @@ gh auth login   # GitHub CLI — needed to open pull requests and follow their C
 
 ## 4. First steps
 
-1. **Open the dashboard:** http://vesslet-harbor.localhost
+1. **Open the dashboard:** http://localhost:7071
 2. **Add a project** — any git repository on your machine:
    ```bash
    vesslet project add ~/code/my-app
@@ -106,6 +113,8 @@ vesslet update
 It refuses while agents are working (an update restarts the companion and would cut them off) — wait for them, or run `vesslet update --force`. If an update is interrupted, the previous version keeps working.
 
 Running the install command again also upgrades in place; your projects, tasks and settings in `~/.vesslet` are kept.
+
+**Updating from a version whose dashboard ran in the harbor** (before preview environments became optional): the first start of the new version moves the dashboard to http://localhost:7071 with its history, removes the old in-cluster one, and makes `vesslet-harbor.localhost` forward to the new address — nothing to do. Vessels that were already running keep sending app feedback to the old place; relaunch them to get feedback from their apps again.
 
 ## 6. Installing a specific version
 

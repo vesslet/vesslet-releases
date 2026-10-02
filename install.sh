@@ -8,6 +8,9 @@
 #   --version vX.Y.Z   VESSLET_VERSION   install this version instead of the latest
 #   --yes              VESSLET_YES=1     install missing tools without asking
 #   --no-setup         VESSLET_NO_SETUP=1  only install the binary
+#   --with vessels     VESSLET_WITH=vessels  also set up preview environments (Docker,
+#                                         k3d, kubectl) — otherwise the setup asks, or
+#                                         installs agents only when it can't ask
 #
 # installer — implements BR-1, BR-2, BR-3, BR-4, BR-7, BR-8
 set -eu
@@ -16,6 +19,7 @@ RELEASES_URL="${VESSLET_RELEASES_URL:-https://github.com/vesslet/vesslet-release
 VERSION="${VESSLET_VERSION:-}"
 YES="${VESSLET_YES:-}"
 NO_SETUP="${VESSLET_NO_SETUP:-}"
+WITH="${VESSLET_WITH:-}"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -23,6 +27,8 @@ while [ $# -gt 0 ]; do
     --version=*) VERSION="${1#--version=}"; shift ;;
     --yes|-y) YES=1; shift ;;
     --no-setup) NO_SETUP=1; shift ;;
+    --with) WITH="${2:-}"; shift 2 ;;
+    --with=*) WITH="${1#--with=}"; shift ;;
     *) echo "vesslet installer: unknown option $1" >&2; exit 2 ;;
   esac
 done
@@ -117,7 +123,8 @@ esac
 # ── setup: tools + harbor (BR-5, BR-6) ──
 [ -n "$NO_SETUP" ] && exit 0
 set -- setup
-[ -n "$YES" ] && set -- setup --yes
+[ -n "$YES" ] && set -- "$@" --yes
+[ -n "$WITH" ] && set -- "$@" --with "$WITH"   # capabilities — BR-3
 say ""
 if [ -r /dev/tty ] && [ -z "$YES" ]; then
   "$bin_dir/vesslet" "$@" </dev/tty

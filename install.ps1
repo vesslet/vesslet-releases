@@ -74,4 +74,7 @@ try {
 # ── setup: tools + harbor (BR-5, BR-6) ──
 if ($env:VESSLET_NO_SETUP) { exit 0 }
 Write-Host ""
-if ($env:VESSLET_YES) { & $target setup --yes } else { & $target setup }
+$setupArgs = @('setup')
+if ($env:VESSLET_YES) { $setupArgs += '--yes' }
+if ($env:VESSLET_WITH) { $setupArgs += @('--with', $env:VESSLET_WITH) }  # capabilities — BR-3
+& $target @setupArgs
